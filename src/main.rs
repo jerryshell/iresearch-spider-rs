@@ -55,6 +55,7 @@ pub struct RearchReport {
 }
 
 async fn fetch_research_report_by_id(
+    client: &reqwest::Client,
     report_id: i64,
 ) -> Result<Option<RearchReport>, Box<dyn std::error::Error>> {
     let url = format!(
@@ -63,7 +64,6 @@ async fn fetch_research_report_by_id(
     );
     println!("url {}", url);
 
-    let client = reqwest::Client::new();
     let response_payload = client
         .get(url)
         .timeout(std::time::Duration::from_secs(3))
@@ -73,7 +73,7 @@ async fn fetch_research_report_by_id(
         .await?;
     // println!("{:#?}", response_payload);
 
-    if response_payload.list.len() < 1 {
+    if response_payload.list.is_empty() {
         return Ok(None);
     }
 
@@ -94,34 +94,31 @@ async fn fetch_research_report_by_id(
         pages_count: response_payload_item.pages_count,
         industry: response_payload_item.industry.to_string(),
         cover: response_payload_item.topic.to_string(),
-        download_url: download_url,
+        download_url,
     };
     // println!("research_report {:#?}", research_report);
 
     Ok(Some(research_report))
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let report_id_range_begin = 453;
-    let report_id_range_end = 4500;
-    let report_id_list = (report_id_range_begin..report_id_range_end).collect::<Vec<i64>>();
+async fn fech_research_report_list_by_id_list(
+    client: &reqwest::Client,
+    report_id_list: Vec<i64>,
+) -> Result<Vec<RearchReport>, Box<dyn std::error::Error>> {
     let mut success_count = 0;
     let mut error_count = 0;
-
+    let mut research_report_list = vec![];
     for report_id in report_id_list {
         loop {
-            match fetch_research_report_by_id(report_id).await {
+            match fetch_research_report_by_id(client, report_id).await {
                 Ok(o) => {
                     success_count += 1;
-                    match o {
-                        Some(research_report) => {
-                            println!(
-                                "{:#?}, success_count: {:#?}, error_count: {:#?}",
-                                research_report, success_count, error_count
-                            );
-                        }
-                        None => {}
+                    if let Some(research_report) = o {
+                        println!(
+                            "{:#?}, success_count: {:#?}, error_count: {:#?}",
+                            research_report, success_count, error_count
+                        );
+                        research_report_list.push(research_report);
                     }
                     break;
                 }
@@ -135,6 +132,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+    Ok(research_report_list)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let report_id_range_begin = 453;
+    let report_id_range_end = 4500;
+    let report_id_list = (report_id_range_begin..report_id_range_end).collect::<Vec<i64>>();
+
+    let client = reqwest::Client::new();
+    let report_list = fech_research_report_list_by_id_list(&client, report_id_list).await?;
+    println!("{:#?} len {:#?}", report_list, report_list.len());
 
     Ok(())
 }
