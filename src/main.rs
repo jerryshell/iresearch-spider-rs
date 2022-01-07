@@ -127,15 +127,21 @@ async fn fech_research_report_list_by_id_list(
                     Ok(o) => {
                         if let Some(research_report) = o {
                             println!("{:#?}", research_report);
-                            let mut task = research_report_list_arc_clone.lock().unwrap();
-                            task.push(research_report);
+                            let mut research_report_list =
+                                research_report_list_arc_clone.lock().unwrap();
+                            research_report_list.push(research_report);
                         }
                     }
-                    Err(_) => todo!(),
+                    Err(e) => eprintln!("{:#?}", e),
                 }
             }
         })
         .await;
+
+    research_report_list_arc
+        .lock()
+        .unwrap()
+        .sort_by(|r1, r2| r1.id.cmp(&r2.id));
 
     Ok(research_report_list_arc.clone())
 }
@@ -143,7 +149,7 @@ async fn fech_research_report_list_by_id_list(
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let report_id_range_begin = 0;
-    let report_id_range_end = 4000;
+    let report_id_range_end = 5000;
     let report_id_list = (report_id_range_begin..report_id_range_end).collect::<Vec<i64>>();
 
     let research_report_list_arc =
