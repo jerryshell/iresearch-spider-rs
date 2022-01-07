@@ -1,3 +1,7 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
+use futures::StreamExt;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use serde_json::Value;
@@ -55,9 +59,9 @@ pub struct RearchReport {
 }
 
 async fn fetch_research_report_by_id(
-    client: &reqwest::Client,
+    client: reqwest::Client,
     report_id: i64,
-) -> Result<Option<RearchReport>, Box<dyn std::error::Error>> {
+) -> Option<RearchReport> {
     let url = format!(
         "https://www.iresearch.com.cn/api/Detail/reportM?id={}&isfree=0",
         report_id
@@ -68,13 +72,15 @@ async fn fetch_research_report_by_id(
         .get(url)
         .timeout(std::time::Duration::from_secs(3))
         .send()
-        .await?
+        .await
+        .unwrap()
         .json::<ResponsePayload>()
-        .await?;
+        .await
+        .unwrap();
     // println!("{:#?}", response_payload);
 
     if response_payload.list.is_empty() {
-        return Ok(None);
+        return None;
     }
 
     let response_payload_item = &response_payload.list[0];
@@ -98,42 +104,42 @@ async fn fetch_research_report_by_id(
     };
     // println!("research_report {:#?}", research_report);
 
-    Ok(Some(research_report))
+    Some(research_report)
 }
 
-async fn fech_research_report_list_by_id_list(
-    client: &reqwest::Client,
-    report_id_list: Vec<i64>,
-) -> Result<Vec<RearchReport>, Box<dyn std::error::Error>> {
-    let mut success_count = 0;
-    let mut error_count = 0;
-    let mut research_report_list = vec![];
-    for report_id in report_id_list {
-        loop {
-            match fetch_research_report_by_id(client, report_id).await {
-                Ok(o) => {
-                    success_count += 1;
-                    if let Some(research_report) = o {
-                        println!(
-                            "{:#?}, success_count: {:#?}, error_count: {:#?}",
-                            research_report, success_count, error_count
-                        );
-                        research_report_list.push(research_report);
-                    }
-                    break;
-                }
-                Err(e) => {
-                    error_count += 1;
-                    println!(
-                        "{:#?}, success_count: {:#?}, error_count: {:#?}",
-                        e, success_count, error_count
-                    );
-                }
-            }
-        }
-    }
-    Ok(research_report_list)
-}
+// async fn fech_research_report_list_by_id_list(
+//     client: &reqwest::Client,
+//     report_id_list: Vec<i64>,
+// ) -> Result<Vec<RearchReport>, Box<dyn std::error::Error>> {
+//     let mut success_count = 0;
+//     let mut error_count = 0;
+//     let mut research_report_list = vec![];
+//     for report_id in report_id_list {
+//         loop {
+//             match fetch_research_report_by_id(client, report_id).await {
+//                 Ok(o) => {
+//                     success_count += 1;
+//                     if let Some(research_report) = o {
+//                         println!(
+//                             "{:#?}, success_count: {:#?}, error_count: {:#?}",
+//                             research_report, success_count, error_count
+//                         );
+//                         research_report_list.push(research_report);
+//                     }
+//                     break;
+//                 }
+//                 Err(e) => {
+//                     error_count += 1;
+//                     println!(
+//                         "{:#?}, success_count: {:#?}, error_count: {:#?}",
+//                         e, success_count, error_count
+//                     );
+//                 }
+//             }
+//         }
+//     }
+//     Ok(research_report_list)
+// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -142,8 +148,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let report_id_list = (report_id_range_begin..report_id_range_end).collect::<Vec<i64>>();
 
     let client = reqwest::Client::new();
-    let report_list = fech_research_report_list_by_id_list(&client, report_id_list).await?;
-    println!("{:#?} len {:#?}", report_list, report_list.len());
+    // let report_list = fech_research_report_list_by_id_list(&client, report_id_list).await?;
+    // println!("{:#?} len {:#?}", report_list, report_list.len());
+
+    let result = futures::stream::iter(report_id_list)
+        .map(|report_id| {
+            let client = client.clone();
+            tokio::spawn(async move { fetch_research_report_by_id(client, report_id).await })
+        })
+        .buffer_unordered(64);
+
+    let task = Arc::new(Mutex::new(vec![]));
+    result
+        .for_each(|f| {
+            let task = task.clone();
+            async move {
+                match f {
+                    Ok(o) => {
+                        if let Some(research_report) = o {
+                            println!("{:#?}", research_report);
+                            let mut task = task.lock().unwrap();
+                            task.push(research_report);
+                        }
+                    }
+                    Err(_) => todo!(),
+                }
+            }
+        })
+        .await;
+    let t = task.lock().unwrap();
+    println!("{:#?} len {}", t, t.len());
 
     Ok(())
 }
