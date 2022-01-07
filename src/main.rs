@@ -110,13 +110,14 @@ async fn fetch_research_report_by_id(
 async fn fech_research_report_list_by_id_list(
     client: reqwest::Client,
     report_id_list: Vec<i64>,
+    parallel_requests: usize,
 ) -> Result<Arc<Mutex<Vec<RearchReport>>>, String> {
     let result = futures::stream::iter(report_id_list)
         .map(|report_id| {
             let client = client.clone();
-            tokio::spawn(async move { fetch_research_report_by_id(client, report_id).await })
+            tokio::spawn(fetch_research_report_by_id(client, report_id))
         })
-        .buffer_unordered(64);
+        .buffer_unordered(parallel_requests);
 
     let research_report_list_arc = Arc::new(Mutex::new(vec![]));
     result
@@ -148,18 +149,23 @@ async fn fech_research_report_list_by_id_list(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let parallel_requests = 64;
     let report_id_range_begin = 0;
     let report_id_range_end = 5000;
     let report_id_list = (report_id_range_begin..report_id_range_end).collect::<Vec<i64>>();
 
-    let research_report_list_arc =
-        fech_research_report_list_by_id_list(reqwest::Client::new(), report_id_list).await?;
+    let research_report_list_arc = fech_research_report_list_by_id_list(
+        reqwest::Client::new(),
+        report_id_list,
+        parallel_requests,
+    )
+    .await?;
 
     let research_report_list = research_report_list_arc.lock().unwrap();
     println!(
         "{:#?} len {}",
         research_report_list,
-        research_report_list.len()
+        research_report_list.len(),
     );
 
     Ok(())
