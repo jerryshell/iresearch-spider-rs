@@ -46,7 +46,7 @@ pub struct ResponsePayloadItem {
     pub content: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RearchReport {
     pub id: i64,
     pub title: String,
@@ -167,6 +167,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         research_report_list,
         research_report_list.len(),
     );
+
+    println!("write to csv...");
+    let mut csv_writer = csv::Writer::from_path("data.csv")?;
+    csv_writer.write_record(&[
+        "id",
+        "title",
+        "report_time",
+        "introduction",
+        "pages_count",
+        "industry",
+        "cover",
+        "download_url",
+    ])?;
+    for research_report in research_report_list.iter() {
+        csv_writer.write_record(&[
+            research_report.id.to_string(),
+            research_report.title.to_string(),
+            research_report.report_time.to_string(),
+            research_report.introduction.to_string(),
+            research_report.pages_count.to_string(),
+            research_report.industry.to_string(),
+            research_report.cover.to_string(),
+            research_report.download_url.to_string(),
+        ])?;
+    }
+    csv_writer.flush()?;
 
     Ok(())
 }
