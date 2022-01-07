@@ -46,7 +46,7 @@ pub struct ResponsePayloadItem {
     pub content: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RearchReport {
     pub id: i64,
     pub title: String,
