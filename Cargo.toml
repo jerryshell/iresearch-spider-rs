@@ -2,6 +2,7 @@
 name = "iresearch-spider-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["github.com/jerryshell/iresearch-spider-rs"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -16,3 +17,4 @@ serde_json = "1.0"
 serde_derive = "1.0"
 futures = "0.3"
 csv = "1.1"
+clap = { version = "3.0", features = ["derive"] }
