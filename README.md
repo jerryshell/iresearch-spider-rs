@@ -1,4 +1,4 @@
-# 艾瑞咨询产业研究报告爬虫 Rust 版
+# 艾瑞咨询产业研究报告采集工具 Rust 版
 
 https://www.iresearch.com.cn/report.shtml
 
@@ -17,3 +17,7 @@ OPTIONS:
     -p, --parallel-requests <PARALLEL_REQUESTS>    [default: 64]
     -V, --version                                  Print version information
 ```
+
+## License
+
+[GNU Affero General Public License v3.0](https://choosealicense.com/licenses/agpl-3.0/)
