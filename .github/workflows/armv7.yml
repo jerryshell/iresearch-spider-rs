@@ -18,3 +18,8 @@ jobs:
           use-cross: true
           command: build
           args: --target armv7-unknown-linux-gnueabihf
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2.3.1
+        with:
+          name: iresearch-spider-rs-armv7
+          path: ./target/armv7-unknown-linux-gnueabihf/release/iresearch-spider-rs
