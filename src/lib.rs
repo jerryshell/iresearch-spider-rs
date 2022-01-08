@@ -112,28 +112,52 @@ pub async fn fech_research_report_list_by_id_list(
     report_id_list: Vec<i64>,
     parallel_requests: usize,
 ) -> Result<Arc<Mutex<Vec<RearchReport>>>, String> {
-    let result = futures::stream::iter(report_id_list)
+    let report_id_list_len = report_id_list.len();
+    let fetch_research_report_result_list = futures::stream::iter(report_id_list)
         .map(|report_id| {
             let client = client.clone();
             tokio::spawn(fetch_research_report_by_id(client, report_id))
         })
         .buffer_unordered(parallel_requests);
 
+    let success_count_arc = Arc::new(Mutex::new(0));
+    let fail_count_arc = Arc::new(Mutex::new(0));
     let research_report_list_arc = Arc::new(Mutex::new(vec![]));
-    result
+
+    fetch_research_report_result_list
         .for_each(|r| {
-            let research_report_list_arc_clone = research_report_list_arc.clone();
+            let research_report_list_arc = research_report_list_arc.clone();
+            let success_count_arc = success_count_arc.clone();
+            let fail_count_arc = fail_count_arc.clone();
             async move {
+                let mut success_count = success_count_arc.lock().unwrap();
+                let mut fail_count = fail_count_arc.lock().unwrap();
                 match r {
                     Ok(o) => {
+                        *success_count += 1;
+                        let total_count = *success_count + *fail_count;
+                        let progress = total_count as f32 / report_id_list_len as f32 * 100f32;
+                        println!(
+                            "success_count: {}, fail_cout: {}, progress: {:.2}%",
+                            success_count, fail_count, progress
+                        );
                         if let Some(research_report) = o {
-                            println!("{:#?}", research_report);
-                            let mut research_report_list =
-                                research_report_list_arc_clone.lock().unwrap();
-                            research_report_list.push(research_report);
+                            research_report_list_arc
+                                .lock()
+                                .unwrap()
+                                .push(research_report);
                         }
                     }
-                    Err(e) => eprintln!("{:#?}", e),
+                    Err(e) => {
+                        *fail_count += 1;
+                        let total_count = *success_count + *fail_count;
+                        let progress = total_count as f32 / report_id_list_len as f32 * 100f32;
+                        println!(
+                            "success_count: {}, fail_cout: {}, progress: {:.2}%",
+                            success_count, fail_count, progress
+                        );
+                        eprintln!("{:#?}", e)
+                    }
                 }
             }
         })
