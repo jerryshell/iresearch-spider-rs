@@ -8,57 +8,57 @@ use serde_json::Value;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ResponsePayload {
+struct ResponsePayload {
     #[serde(rename = "Status")]
-    pub status: i64,
+    status: i64,
     #[serde(rename = "Msg")]
-    pub msg: Value,
+    msg: Value,
     #[serde(rename = "Item")]
-    pub item: Value,
+    item: Value,
     #[serde(rename = "List")]
-    pub list: Vec<ResponsePayloadItem>,
+    list: Vec<ResponsePayloadItem>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ResponsePayloadItem {
-    pub id: i64,
+struct ResponsePayloadItem {
+    id: i64,
     #[serde(rename = "Title")]
-    pub title: String,
+    title: String,
     #[serde(rename = "TuijianText")]
-    pub tuijian_text: String,
+    tuijian_text: String,
     #[serde(rename = "Uptime")]
-    pub uptime: String,
-    pub keywords: Value,
+    uptime: String,
+    keywords: Value,
     #[serde(rename = "ReportList")]
-    pub report_list: String,
+    report_list: String,
     #[serde(rename = "GraphList")]
-    pub graph_list: String,
+    graph_list: String,
     #[serde(rename = "PagesCount")]
-    pub pages_count: i64,
+    pages_count: i64,
     #[serde(rename = "tID")]
-    pub t_id: i64,
-    pub industry: String,
+    t_id: i64,
+    industry: String,
     #[serde(rename = "Topic")]
-    pub topic: String,
-    pub is_free: i64,
+    topic: String,
+    is_free: i64,
     #[serde(rename = "Content")]
-    pub content: String,
+    content: String,
 }
 
 #[derive(Debug)]
 pub struct RearchReport {
-    pub id: i64,
-    pub title: String,
-    pub report_time: String,
-    pub introduction: String,
-    pub pages_count: i64,
-    pub industry: String,
-    pub cover: String,
-    pub download_url: String,
+    id: i64,
+    title: String,
+    report_time: String,
+    introduction: String,
+    pages_count: i64,
+    industry: String,
+    cover: String,
+    download_url: String,
 }
 
-pub async fn fetch_research_report_by_id(
+async fn fetch_research_report_by_id(
     client: reqwest::Client,
     report_id: i64,
 ) -> Option<RearchReport> {

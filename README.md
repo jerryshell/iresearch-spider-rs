@@ -3,6 +3,10 @@
 https://www.iresearch.com.cn/report.shtml
 
 ```
+./iresearch-spider-rs --help
+iresearch-spider-rs 0.1.0
+github.com/jerryshell/iresearch-spider-rs
+
 USAGE:
     iresearch-spider-rs [OPTIONS]
 
