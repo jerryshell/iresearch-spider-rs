@@ -22,7 +22,7 @@ struct ResponsePayload {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ResponsePayloadItem {
-    id: i64,
+    id: usize,
     #[serde(rename = "Title")]
     title: String,
     #[serde(rename = "TuijianText")]
@@ -48,7 +48,7 @@ struct ResponsePayloadItem {
 
 #[derive(Debug)]
 pub struct RearchReport {
-    id: i64,
+    id: usize,
     title: String,
     report_time: String,
     introduction: String,
@@ -58,13 +58,10 @@ pub struct RearchReport {
     download_url: String,
 }
 
-async fn fetch_research_report_by_id(
-    client: reqwest::Client,
-    report_id: i64,
-) -> Option<RearchReport> {
+async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Option<RearchReport> {
     let url = format!(
         "https://www.iresearch.com.cn/api/Detail/reportM?id={}&isfree=0",
-        report_id
+        id
     );
     // println!("url {}", url);
 
@@ -107,16 +104,22 @@ async fn fetch_research_report_by_id(
     Some(research_report)
 }
 
-pub async fn fech_research_report_list_by_id_list(
-    client: reqwest::Client,
-    report_id_list: Vec<i64>,
+pub async fn fech_research_report_list_by_id_range(
+    id_range: (usize, usize),
     parallel_requests: usize,
 ) -> Result<Arc<Mutex<Vec<RearchReport>>>, String> {
-    let report_id_list_len = report_id_list.len();
-    let fetch_research_report_result_list = futures::stream::iter(report_id_list)
-        .map(|report_id| {
+    let id_list = (id_range.0..id_range.1).collect::<Vec<usize>>();
+    let id_list_len = id_list.len();
+
+    let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(3))
+        .build()
+        .unwrap();
+
+    let fetch_research_report_result_list = futures::stream::iter(id_list)
+        .map(|id| {
             let client = client.clone();
-            tokio::spawn(fetch_research_report_by_id(client, report_id))
+            tokio::spawn(fetch_research_report_by_id(client, id))
         })
         .buffer_unordered(parallel_requests);
 
@@ -125,18 +128,18 @@ pub async fn fech_research_report_list_by_id_list(
     let research_report_list_arc = Arc::new(Mutex::new(vec![]));
 
     fetch_research_report_result_list
-        .for_each(|r| {
+        .for_each(|result| {
             let research_report_list_arc = research_report_list_arc.clone();
             let success_count_arc = success_count_arc.clone();
             let fail_count_arc = fail_count_arc.clone();
             async move {
                 let mut success_count = success_count_arc.lock().unwrap();
                 let mut fail_count = fail_count_arc.lock().unwrap();
-                match r {
+                match result {
                     Ok(o) => {
                         *success_count += 1;
                         let total_count = *success_count + *fail_count;
-                        let progress = total_count as f32 / report_id_list_len as f32 * 100f32;
+                        let progress = total_count as f32 / id_list_len as f32 * 100f32;
                         println!(
                             "success_count: {}, fail_cout: {}, progress: {:.2}%",
                             success_count, fail_count, progress
@@ -151,7 +154,7 @@ pub async fn fech_research_report_list_by_id_list(
                     Err(e) => {
                         *fail_count += 1;
                         let total_count = *success_count + *fail_count;
-                        let progress = total_count as f32 / report_id_list_len as f32 * 100f32;
+                        let progress = total_count as f32 / id_list_len as f32 * 100f32;
                         println!(
                             "success_count: {}, fail_cout: {}, progress: {:.2}%",
                             success_count, fail_count, progress
