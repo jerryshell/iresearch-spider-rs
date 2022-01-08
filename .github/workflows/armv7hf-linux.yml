@@ -3,8 +3,8 @@ on: [push]
 name: ARMv7 build
 
 jobs:
-  linux_arm7:
-    name: Linux ARMv7
+  armv7hf-linux:
+    name: armv7hf-linux
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -17,9 +17,11 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --target armv7-unknown-linux-gnueabihf
-      - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v2.3.1
+          args: --release --target armv7-unknown-linux-gnueabihf
+      - run: ls
+      - run: ls target
+      - run: tree target
+      - uses: actions/upload-artifact@v2.3.1
         with:
-          name: iresearch-spider-rs-armv7
-          path: ./target/armv7-unknown-linux-gnueabihf/release/iresearch-spider-rs
+          name: iresearch-spider-rs-armv7hf
+          path: target/armv7-unknown-linux-gnueabihf/release/iresearch-spider-rs
