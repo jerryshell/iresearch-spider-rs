@@ -1,10 +1,11 @@
-use std::sync::Arc;
-use std::sync::Mutex;
-
+use anyhow::anyhow;
+use anyhow::Result;
 use futures::StreamExt;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use serde_json::Value;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,7 +59,7 @@ pub struct RearchReport {
     download_url: String,
 }
 
-async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Option<RearchReport> {
+async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Result<RearchReport> {
     let url = format!(
         "https://www.iresearch.com.cn/api/Detail/reportM?id={}&isfree=0",
         id
@@ -69,15 +70,13 @@ async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Opti
         .get(url)
         .timeout(std::time::Duration::from_secs(3))
         .send()
-        .await
-        .unwrap()
+        .await?
         .json::<ResponsePayload>()
-        .await
-        .unwrap();
+        .await?;
     // println!("{:#?}", response_payload);
 
     if response_payload.list.is_empty() {
-        return None;
+        return Err(anyhow!("response_payload.list.is_empty()"));
     }
 
     let response_payload_item = &response_payload.list[0];
@@ -101,13 +100,13 @@ async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Opti
     };
     // println!("research_report {:#?}", research_report);
 
-    Some(research_report)
+    Ok(research_report)
 }
 
 pub async fn fech_research_report_list_by_id_range(
     id_range: (usize, usize),
     parallel_requests: usize,
-) -> Result<Arc<Mutex<Vec<RearchReport>>>, String> {
+) -> Result<Arc<Mutex<Vec<RearchReport>>>> {
     let id_list = (id_range.0..id_range.1).collect::<Vec<usize>>();
     let id_list_len = id_list.len();
 
@@ -116,7 +115,7 @@ pub async fn fech_research_report_list_by_id_range(
         .build()
         .unwrap();
 
-    let fetch_research_report_result_list = futures::stream::iter(id_list)
+    let fetch_research_report_join_handle_list = futures::stream::iter(id_list)
         .map(|id| {
             let client = client.clone();
             tokio::spawn(fetch_research_report_by_id(client, id))
@@ -127,16 +126,16 @@ pub async fn fech_research_report_list_by_id_range(
     let fail_count_arc = Arc::new(Mutex::new(0));
     let research_report_list_arc = Arc::new(Mutex::new(vec![]));
 
-    fetch_research_report_result_list
-        .for_each(|result| {
+    fetch_research_report_join_handle_list
+        .for_each(|join_handle| {
             let research_report_list_arc = research_report_list_arc.clone();
             let success_count_arc = success_count_arc.clone();
             let fail_count_arc = fail_count_arc.clone();
             async move {
                 let mut success_count = success_count_arc.lock().unwrap();
                 let mut fail_count = fail_count_arc.lock().unwrap();
-                match result {
-                    Ok(o) => {
+                match join_handle {
+                    Ok(fetch_result) => {
                         *success_count += 1;
                         let total_count = *success_count + *fail_count;
                         let progress = total_count as f32 / id_list_len as f32 * 100f32;
@@ -144,7 +143,7 @@ pub async fn fech_research_report_list_by_id_range(
                             "success_count: {}, fail_cout: {}, progress: {:.2}%",
                             success_count, fail_count, progress
                         );
-                        if let Some(research_report) = o {
+                        if let Ok(research_report) = fetch_result {
                             research_report_list_arc
                                 .lock()
                                 .unwrap()
@@ -174,9 +173,7 @@ pub async fn fech_research_report_list_by_id_range(
     Ok(research_report_list_arc.clone())
 }
 
-pub async fn write_to_csv(
-    research_report_list_arc: Arc<Mutex<Vec<RearchReport>>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn write_to_csv(research_report_list_arc: Arc<Mutex<Vec<RearchReport>>>) -> Result<()> {
     println!("write to csv...");
 
     let research_report_list = research_report_list_arc.lock().unwrap();
