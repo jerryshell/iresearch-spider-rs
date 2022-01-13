@@ -4,7 +4,7 @@ https://www.iresearch.com.cn/report.shtml
 
 ```
 ./iresearch-spider-rs --help
-iresearch-spider-rs 0.1.0
+iresearch-spider-rs 0.2.0
 github.com/jerryshell/iresearch-spider-rs
 
 USAGE:
@@ -12,6 +12,7 @@ USAGE:
 
 OPTIONS:
     -b, --id-range-begin <ID_RANGE_BEGIN>          [default: 0]
+    -c, --connect-timeout <CONNECT_TIMEOUT>        [default: 3]
     -e, --id-range-end <ID_RANGE_END>              [default: 5000]
     -h, --help                                     Print help information
     -p, --parallel-requests <PARALLEL_REQUESTS>    [default: 64]

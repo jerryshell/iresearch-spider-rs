@@ -103,17 +103,17 @@ async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Resu
     Ok(research_report)
 }
 
-pub async fn fech_research_report_list_by_id_range(
+pub async fn fetch_research_report_list_by_id_range(
     id_range: (usize, usize),
     parallel_requests: usize,
+    connect_timeout: u64,
 ) -> Result<Arc<Mutex<Vec<RearchReport>>>> {
     let id_list = (id_range.0..id_range.1).collect::<Vec<usize>>();
     let id_list_len = id_list.len();
 
     let client = reqwest::Client::builder()
-        .connect_timeout(std::time::Duration::from_secs(3))
-        .build()
-        .unwrap();
+        .connect_timeout(std::time::Duration::from_secs(connect_timeout))
+        .build()?;
 
     let fetch_research_report_join_handle_list = futures::stream::iter(id_list)
         .map(|id| {
@@ -170,7 +170,7 @@ pub async fn fech_research_report_list_by_id_range(
         .unwrap()
         .sort_by(|r1, r2| r1.id.cmp(&r2.id));
 
-    Ok(research_report_list_arc.clone())
+    Ok(research_report_list_arc)
 }
 
 pub async fn write_to_csv(research_report_list_arc: Arc<Mutex<Vec<RearchReport>>>) -> Result<()> {

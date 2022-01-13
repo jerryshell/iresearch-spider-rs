@@ -12,15 +12,19 @@ struct Args {
 
     #[clap(short = 'e', long, default_value_t = 5000)]
     id_range_end: usize,
+
+    #[clap(short = 'c', long, default_value_t = 3)]
+    connect_timeout: u64,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let research_report_list_arc = iresearch_spider_rs::fech_research_report_list_by_id_range(
+    let research_report_list_arc = iresearch_spider_rs::fetch_research_report_list_by_id_range(
         (args.id_range_begin, args.id_range_end),
         args.parallel_requests,
+        args.connect_timeout,
     )
     .await?;
 
