@@ -21,14 +21,14 @@ struct Args {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let research_report_list_arc = iresearch_spider_rs::fetch_research_report_list_by_id_range(
+    let research_report_list = iresearch_spider_rs::fetch_research_report_list_by_id_range(
         (args.id_range_begin, args.id_range_end),
         args.parallel_requests,
         args.connect_timeout,
     )
     .await?;
 
-    iresearch_spider_rs::write_to_csv(research_report_list_arc).await?;
+    iresearch_spider_rs::write_to_csv(&research_report_list).await?;
 
     Ok(())
 }
