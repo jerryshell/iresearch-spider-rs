@@ -48,7 +48,7 @@ struct ResponsePayloadItem {
 }
 
 #[derive(Debug, Clone)]
-pub struct RearchReport {
+pub struct ResearchReport {
     id: usize,
     title: String,
     report_time: String,
@@ -59,7 +59,7 @@ pub struct RearchReport {
     download_url: String,
 }
 
-async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Result<RearchReport> {
+async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Result<ResearchReport> {
     let url = format!(
         "https://www.iresearch.com.cn/api/Detail/reportM?id={}&isfree=0",
         id
@@ -88,7 +88,7 @@ async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Resu
     );
     // println!("download_url {:#?}", download_url);
 
-    let research_report = RearchReport {
+    let research_report = ResearchReport {
         id: response_payload_item.id,
         title: response_payload_item.title.to_string(),
         report_time: response_payload_item.uptime.to_string(),
@@ -107,7 +107,7 @@ pub async fn fetch_research_report_list_by_id_range(
     id_range: (usize, usize),
     parallel_requests: usize,
     connect_timeout: u64,
-) -> Result<Arc<Mutex<Vec<RearchReport>>>> {
+) -> Result<Arc<Mutex<Vec<ResearchReport>>>> {
     let id_list = (id_range.0..id_range.1).collect::<Vec<usize>>();
     let id_list_len = id_list.len();
 
@@ -173,7 +173,7 @@ pub async fn fetch_research_report_list_by_id_range(
     Ok(research_report_list_arc)
 }
 
-pub async fn write_to_csv(research_report_list: &[RearchReport]) -> Result<()> {
+pub async fn write_to_csv(research_report_list: &[ResearchReport]) -> Result<()> {
     println!("write to csv...");
 
     println!("research_report_list len {:#?}", research_report_list.len());
@@ -207,4 +207,19 @@ pub async fn write_to_csv(research_report_list: &[RearchReport]) -> Result<()> {
     csv_writer.flush()?;
 
     Ok(())
+}
+
+mod tests {
+    #[tokio::test]
+    async fn test_fetch_research_report_by_id() {
+        let client = reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(3))
+            .build()
+            .unwrap();
+        let research_report = crate::fetch_research_report_by_id(client, 3922)
+            .await
+            .unwrap();
+        assert_eq!(research_report.title, "2022年数据库云管平台白皮书");
+        assert_ne!(research_report.id, 3939);
+    }
 }
