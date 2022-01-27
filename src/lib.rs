@@ -209,6 +209,7 @@ pub async fn write_to_csv(research_report_list: &[ResearchReport]) -> Result<()>
     Ok(())
 }
 
+#[cfg(test)]
 mod tests {
     #[tokio::test]
     async fn test_fetch_research_report_by_id() {
