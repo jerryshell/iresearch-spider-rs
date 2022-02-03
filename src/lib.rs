@@ -116,10 +116,7 @@ pub async fn fetch_research_report_list_by_id_range(
         .build()?;
 
     let fetch_research_report_join_handle_list = futures::stream::iter(id_list)
-        .map(|id| {
-            let client = client.clone();
-            tokio::spawn(fetch_research_report_by_id(client, id))
-        })
+        .map(|id| tokio::spawn(fetch_research_report_by_id(client.clone(), id)))
         .buffer_unordered(parallel_requests);
 
     let success_count_arc = Arc::new(Mutex::new(0));
@@ -128,9 +125,9 @@ pub async fn fetch_research_report_list_by_id_range(
 
     fetch_research_report_join_handle_list
         .for_each(|join_handle| {
-            let research_report_list_arc = research_report_list_arc.clone();
-            let success_count_arc = success_count_arc.clone();
-            let fail_count_arc = fail_count_arc.clone();
+            let research_report_list_arc = Arc::clone(&research_report_list_arc);
+            let success_count_arc = Arc::clone(&success_count_arc);
+            let fail_count_arc = Arc::clone(&fail_count_arc);
             async move {
                 let mut success_count = success_count_arc.lock().unwrap();
                 let mut fail_count = fail_count_arc.lock().unwrap();
