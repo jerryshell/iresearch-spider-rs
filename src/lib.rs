@@ -107,7 +107,7 @@ pub async fn fetch_research_report_list_by_id_range(
     id_range: (usize, usize),
     parallel_requests: usize,
     connect_timeout: u64,
-) -> Result<Arc<Mutex<Vec<ResearchReport>>>> {
+) -> Result<Vec<ResearchReport>> {
     let id_list = (id_range.0..id_range.1).collect::<Vec<usize>>();
     let id_list_len = id_list.len();
 
@@ -162,12 +162,10 @@ pub async fn fetch_research_report_list_by_id_range(
         })
         .await;
 
-    research_report_list_arc
-        .lock()
-        .unwrap()
-        .sort_by(|r1, r2| r1.id.cmp(&r2.id));
+    let mut research_report_list = research_report_list_arc.lock().unwrap().clone();
+    research_report_list.sort_by(|r1, r2| r1.id.cmp(&r2.id));
 
-    Ok(research_report_list_arc)
+    Ok(research_report_list)
 }
 
 pub async fn write_to_csv(research_report_list: &[ResearchReport]) -> Result<()> {
