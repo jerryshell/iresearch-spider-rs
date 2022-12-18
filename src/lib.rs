@@ -9,78 +9,79 @@ use std::sync::Mutex;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ResponsePayload {
+pub struct ResponsePayload {
     #[serde(rename = "Status")]
-    status: i64,
+    pub status: String,
     #[serde(rename = "Msg")]
-    msg: Value,
+    pub msg: Value,
     #[serde(rename = "Item")]
-    item: Value,
+    pub item: Value,
     #[serde(rename = "List")]
-    list: Vec<ResponsePayloadItem>,
+    pub list: Vec<ResponsePayloadItem>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ResponsePayloadItem {
-    id: usize,
+pub struct ResponsePayloadItem {
+    pub id: usize,
     #[serde(rename = "Title")]
-    title: String,
+    pub title: String,
     #[serde(rename = "TuijianText")]
-    tuijian_text: String,
+    pub tuijian_text: String,
     #[serde(rename = "Uptime")]
-    uptime: String,
-    keywords: Value,
+    pub uptime: String,
+    pub keywords: Value,
     #[serde(rename = "ReportList")]
-    report_list: String,
+    pub report_list: String,
     #[serde(rename = "GraphList")]
-    graph_list: String,
+    pub graph_list: String,
     #[serde(rename = "PagesCount")]
-    pages_count: i64,
+    pub pages_count: i64,
     #[serde(rename = "tID")]
-    t_id: i64,
-    industry: String,
+    pub t_id: i64,
+    pub industry: String,
     #[serde(rename = "Topic")]
-    topic: String,
-    is_free: i64,
+    pub topic: String,
+    pub is_free: i64,
     #[serde(rename = "Content")]
-    content: String,
+    pub content: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct ResearchReport {
-    id: usize,
-    title: String,
-    report_time: String,
-    introduction: String,
-    pages_count: i64,
-    industry: String,
-    cover: String,
-    download_url: String,
+    pub id: usize,
+    pub title: String,
+    pub report_time: String,
+    pub introduction: String,
+    pub pages_count: i64,
+    pub industry: String,
+    pub cover: String,
+    pub download_url: String,
 }
 
-async fn fetch_research_report_by_id(client: reqwest::Client, id: usize) -> Result<ResearchReport> {
-    let url = format!(
-        "https://www.iresearch.com.cn/api/Detail/reportM?id={}&isfree=0",
-        id
-    );
-    // println!("url {}", url);
+pub async fn fetch_research_report_by_id(
+    client: reqwest::Client,
+    id: usize,
+) -> Result<ResearchReport> {
+    let url = format!("https://www.iresearch.com.cn/api/Detail/reportM?id={id}&isfree=0");
+    // println!("url: {url}");
 
-    let response_payload = client
+    let response = client
         .get(url)
         .timeout(std::time::Duration::from_secs(3))
         .send()
-        .await?
-        .json::<ResponsePayload>()
         .await?;
-    // println!("{:#?}", response_payload);
+    // println!("response: {response:#?}");
+
+    let response_payload = response.json::<ResponsePayload>().await?;
+    // println!("response_payload: {response_payload:#?}");
 
     if response_payload.list.is_empty() {
         return Err(anyhow!("response_payload.list.is_empty()"));
     }
 
     let response_payload_item = &response_payload.list[0];
-    // println!("{:#?}", response_payload_item);
+    // println!("response_payload_item: {response_payload_item:#?}");
 
     let download_url = format!(
         "https://www.iresearch.cn/include/ajax/user_ajax.ashx?work=idown&rid={}",
@@ -137,8 +138,7 @@ pub async fn fetch_research_report_list_by_id_range(
                         let total_count = *success_count + *fail_count;
                         let progress = total_count as f32 / id_list_len as f32 * 100f32;
                         println!(
-                            "success_count: {}, fail_cout: {}, progress: {:.2}%",
-                            success_count, fail_count, progress
+                            "success_count: {success_count}, fail_cout: {fail_count}, progress: {progress:.2}%"
                         );
                         if let Ok(research_report) = fetch_result {
                             research_report_list_arc
@@ -152,10 +152,9 @@ pub async fn fetch_research_report_list_by_id_range(
                         let total_count = *success_count + *fail_count;
                         let progress = total_count as f32 / id_list_len as f32 * 100f32;
                         println!(
-                            "success_count: {}, fail_cout: {}, progress: {:.2}%",
-                            success_count, fail_count, progress
+                            "success_count: {success_count}, fail_cout: {fail_count}, progress: {progress:.2}%"
                         );
-                        eprintln!("{:#?}", e)
+                        eprintln!("{e:#?}")
                     }
                 }
             }
@@ -175,7 +174,7 @@ pub async fn write_to_csv(research_report_list: &[ResearchReport]) -> Result<()>
 
     let mut csv_writer = csv::Writer::from_path("data.csv")?;
 
-    csv_writer.write_record(&[
+    csv_writer.write_record([
         "id",
         "title",
         "report_time",
@@ -202,20 +201,4 @@ pub async fn write_to_csv(research_report_list: &[ResearchReport]) -> Result<()>
     csv_writer.flush()?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    #[tokio::test]
-    async fn test_fetch_research_report_by_id() {
-        let client = reqwest::Client::builder()
-            .connect_timeout(std::time::Duration::from_secs(3))
-            .build()
-            .unwrap();
-        let research_report = crate::fetch_research_report_by_id(client, 3922)
-            .await
-            .unwrap();
-        assert_eq!(research_report.title, "2022年数据库云管平台白皮书");
-        assert_ne!(research_report.id, 3939);
-    }
 }
