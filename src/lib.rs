@@ -1,8 +1,8 @@
 use anyhow::anyhow;
 use anyhow::Result;
 use futures::StreamExt;
-use serde_derive::Deserialize;
-use serde_derive::Serialize;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::Value;
 use std::sync::Arc;
 use std::sync::Mutex;
