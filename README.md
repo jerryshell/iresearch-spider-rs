@@ -3,25 +3,20 @@
 https://www.iresearch.com.cn/report.shtml
 
 ```
-./iresearch-spider-rs --help
-iresearch-spider-rs 0.2.0
-github.com/jerryshell/iresearch-spider-rs
+Usage: iresearch-spider-rs.exe [OPTIONS]
 
-USAGE:
-    iresearch-spider-rs [OPTIONS]
-
-OPTIONS:
-    -b, --id-range-begin <ID_RANGE_BEGIN>          [default: 0]
-    -c, --connect-timeout <CONNECT_TIMEOUT>        [default: 3]
-    -e, --id-range-end <ID_RANGE_END>              [default: 5000]
-    -h, --help                                     Print help information
-    -p, --parallel-requests <PARALLEL_REQUESTS>    [default: 64]
-    -V, --version                                  Print version information
+Options:
+  -p, --parallel-requests <PARALLEL_REQUESTS>  [default: 64]
+  -b, --id-range-begin <ID_RANGE_BEGIN>        [default: 0]
+  -e, --id-range-end <ID_RANGE_END>            [default: 5000]
+  -c, --connect-timeout <CONNECT_TIMEOUT>      [default: 3]
+  -h, --help                                   Print help
+  -V, --version                                Print version
 ```
 
-## 可执行文件下载
+## 采集数据
 
-https://github.com/jerryshell/iresearch-spider-rs/releases
+https://github.com/jerryshell/iresearch-spider-rs/blob/master/data.csv
 
 ## 开源许可证
 
